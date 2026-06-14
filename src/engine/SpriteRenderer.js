@@ -23,6 +23,7 @@ export class SpriteRenderer {
     this.img = null;
     this.loaded = false;
     this._trackState = {};
+    this._trackFinished = false;
     this._initTrackState();
     this.load();
   }
@@ -43,6 +44,10 @@ export class SpriteRenderer {
   }
 
   update(dt) {
+    // Reset finished flag each tick; set true below if any enabled non-looping
+    // track reaches its last frame — consumed by CueTimeline via trackFinished getter.
+    this._trackFinished = false;
+
     (this.cfg.tracks || []).forEach((track) => {
       if (!track.enabled) return;
       const frames = track.frames || [0];
@@ -54,11 +59,38 @@ export class SpriteRenderer {
       if (state.elapsed >= interval) {
         state.elapsed = 0;
         const next = state.frameIdx + 1;
-        state.frameIdx = next >= frames.length
-          ? (track.loop ? 0 : frames.length - 1)
-          : next;
+        if (next >= frames.length) {
+          if (track.loop) {
+            state.frameIdx = 0;
+          } else {
+            state.frameIdx = frames.length - 1;
+            this._trackFinished = true; // non-looping track reached its last frame
+          }
+        } else {
+          state.frameIdx = next;
+        }
       }
     });
+  }
+
+  // ── CUE SYSTEM INTERFACE ──────────────────────────────────────────────────
+  // Consumed by buildLayerSnapshot() in CueTimeline.js.
+  // currentFrame returns the actual frame index of the first enabled track —
+  // i.e. the sheet frame number, not the track's internal frameIdx — so cue
+  // triggers can be authored in terms of the sprite sheet frame directly.
+
+  get currentFrame() {
+    const firstEnabled = (this.cfg.tracks || []).find((t) => t.enabled);
+    if (!firstEnabled) return 0;
+    const state = this._trackState[firstEnabled.id];
+    if (!state) return 0;
+    const frames = firstEnabled.frames || [0];
+    return frames[Math.min(state.frameIdx, frames.length - 1)] ?? 0;
+  }
+
+  // True for one tick when any enabled non-looping track reaches its last frame.
+  get trackFinished() {
+    return this._trackFinished;
   }
 
   // RENDER A SINGLE TRACK'S CURRENT FRAME ONTO CTX.

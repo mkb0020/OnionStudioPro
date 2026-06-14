@@ -131,6 +131,12 @@
   }
 }
 
+.window-logo {
+    max-width: 60px;
+    max-height: 60px;
+    overflow: hidden;
+}
+
 /* ============================ BASE STYLES ============================ */
 * {
   margin: 0;
@@ -443,7 +449,7 @@ html::-webkit-scrollbar-thumb {
   gap: 8px;
   padding: 8px 18px;
   font-family: 'Segoe UI', 'SpaceLetters', monospace;
-  font-size: 0.85rem;
+  font-size: 1.0rem;
   font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -525,13 +531,13 @@ html::-webkit-scrollbar-thumb {
 
 .holo-btn--sm {
   padding: 4px 12px;
-  font-size: 0.7rem;
+  font-size: 0.8rem;
   gap: 6px;
 }
 
 .holo-btn--lg {
   padding: 12px 28px;
-  font-size: 1rem;
+  font-size: 1.1rem;
   letter-spacing: 0.1em;
 }
 
@@ -540,4 +546,13 @@ html::-webkit-scrollbar-thumb {
   opacity: 0.4;
   pointer-events: none;
   filter: grayscale(0.1);
+}
+
+
+
+
+
+
+html, body, #root {
+  height: 100%;
 }

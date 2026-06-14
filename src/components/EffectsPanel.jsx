@@ -3,6 +3,10 @@
 // RENDERS THE EFFECTS SECTION INSIDE PROPERTYPANEL FOR A SELECTED LAYER.
 // EACH EFFECT TYPE HAS ITS OWN CONTROL BLOCK. EFFECTS ARE STORED AS AN ARRAY
 // ON THE LAYER OBJECT: LAYER.EFFECTS = [{ TYPE, ...PARAMS }]
+//
+// NOTE: Layer-level effects only apply to particle layers.
+//       Sprite layers apply effects at the track level via TrackEditor.
+//       Pass layerType="sprite" to suppress this panel for sprite layers.
 
 import { useState } from "react";
 
@@ -130,11 +134,32 @@ const EFFECT_DEFAULTS = {
 };
 
 // ─── MAIN EFFECTSPANEL ────────────────────────────────────────────────────────
+// layerType: "particle" | "sprite" | undefined
+// Sprite layers manage effects per-track inside TrackEditor — suppress here.
 
-export function EffectsPanel({ layer, onUpdateEffects }) {
+export function EffectsPanel({ layer, onUpdateEffects, layerType }) {
   const effects = layer.effects || [];
   const activeTypes = new Set(effects.map((e) => e.type));
   const [expanded, setExpanded] = useState({});
+
+  // Sprite layers: effects live on tracks, not the layer itself.
+  // Show an informational note instead of the full panel.
+  if (layerType === "sprite") {
+    return (
+      <div style={{ marginTop: 12, borderTop: "1px solid var(--border)", paddingTop: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 6 }}>
+          <span style={{ fontSize: 10, color: "var(--accent3)", letterSpacing: 1, textTransform: "uppercase" }}>
+            ✦ Visual Effects
+          </span>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.6, padding: "4px 0" }}>
+          Effects for sprite layers are applied per-track.
+          <br />
+          Open the <span style={{ color: "var(--text2)" }}>Layer Editor</span> to configure track effects.
+        </div>
+      </div>
+    );
+  }
 
   const addEffect = (type) => {
     if (activeTypes.has(type)) return;

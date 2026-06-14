@@ -5,11 +5,157 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <title>Animation Lab</title>
+    <title>Onion Studio Pro</title>
+    <link rel="stylesheet" href="src/ui/window/window.css">
     <link rel="stylesheet" href="assets/css/style.css">
   </head>
   <body>
-    <div id="root"></div>
+
+    <div id="pretty-window">
+
+      <!-- ── Title Bar ── -->
+      <div id="pretty-titlebar" data-draggable="true">
+        <span id="pretty-icon" class="icon-placeholder" aria-hidden="true">
+          <img class="window-logo" src="./images/logo.png" alt="logo">
+        </span>
+        <span id="pretty-title">Onion Studio Pro</span>
+
+        <div id="pretty-controls" data-draggable="false">
+
+          <button class="pk-btn pk-btn--minimize" id="pk-minimize" title="Minimize">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+          </button>
+
+          <button class="pk-btn pk-btn--maximize" id="pk-maximize" title="Maximize">
+            <svg id="pk-max-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <rect x="5" y="5" width="14" height="14" rx="1"/>
+            </svg>
+            <svg id="pk-restore-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" style="display:none;">
+              <rect x="8" y="4" width="12" height="12" rx="1"/>
+              <path d="M4 8v12h12"/>
+            </svg>
+          </button>
+
+          <button class="pk-btn pk-btn--close" id="pk-close" title="Close">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="18" y1="6" x2="6" y2="18"/>
+              <line x1="6"  y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+
+        </div>
+      </div>
+      <!-- /Title Bar -->
+
+      <!-- ── Content: React mounts here ── -->
+      <div id="pretty-content">
+        <div id="root"></div>
+      </div>
+
+
+      <!-- Resize handles (invisible zones) -->
+<div id="rz-top"        class="resize-zone resize-top"       ></div>
+<div id="rz-bottom"     class="resize-zone resize-bottom"    ></div>
+<div id="rz-left"       class="resize-zone resize-left"      ></div>
+<div id="rz-right"      class="resize-zone resize-right"     ></div>
+<div id="rz-top-left"   class="resize-zone resize-corner resize-top-left"  ></div>
+<div id="rz-top-right"  class="resize-zone resize-corner resize-top-right" ></div>
+<div id="rz-bottom-left" class="resize-zone resize-corner resize-bottom-left"></div>
+<div id="rz-bottom-right" class="resize-zone resize-corner resize-bottom-right"></div>
+
+    </div>
+    <!-- /pretty-window -->
+
+    <!-- Pretty Kit init — module -->
+    <script type="module">
+      import { createPrettyWindow } from './src/ui/window/window.js';
+      createPrettyWindow({
+        title:       'Onion Studio Pro',
+        icon:        '🧅',
+        accentColor: 'violet',
+        showStatus:  false,
+      });
+    </script>
+
+    <!-- Window controls — plain script, no module, uses proven invoke path -->
+    <script>
+      function _tauriCmd(cmd) {
+        if (window.__TAURI__?.core?.invoke) {
+          window.__TAURI__.core.invoke(cmd)
+            .then(function() { console.log('[OSP] ' + cmd + ' OK'); })
+            .catch(function(e) { console.error('[OSP] ' + cmd + ' failed:', e); });
+        } else {
+          console.warn('[OSP] __TAURI__.core.invoke not ready for:', cmd);
+        }
+      }
+
+      document.getElementById('pk-minimize').addEventListener('click', function(e) {
+        e.stopImmediatePropagation();
+        _tauriCmd('minimize_window');
+      });
+
+      document.getElementById('pk-maximize').addEventListener('click', function(e) {
+        e.stopImmediatePropagation();
+        _tauriCmd('toggle_maximize_window');
+      });
+
+      document.getElementById('pk-close').addEventListener('click', function(e) {
+        e.stopImmediatePropagation();
+        _tauriCmd('close_window');
+      });
+
+      // ── Titlebar drag (mousedown triggers native window dragging) ──
+(function() {
+    const titlebar = document.getElementById('pretty-titlebar');
+    if (titlebar) {
+        titlebar.addEventListener('mousedown', function(e) {
+            // Only start drag if the click was NOT on a control button
+            if (e.target.closest('#pretty-controls')) return;
+            // Right-click should not drag
+            if (e.button !== 0) return;
+
+            const tauriWindow = window.__TAURI__?.window;
+            if (tauriWindow) {
+                tauriWindow.getCurrentWindow().startDragging();
+            }
+        });
+    }
+})();
+
+// ── Edge / Corner Resize ──────────────────────────────
+(function() {
+    const directionMap = {
+        'rz-top':          'North',
+        'rz-bottom':       'South',
+        'rz-left':         'West',
+        'rz-right':        'East',
+        'rz-top-left':     'NorthWest',
+        'rz-top-right':    'NorthEast',
+        'rz-bottom-left':  'SouthWest',
+        'rz-bottom-right': 'SouthEast',
+    };
+
+    function handleResizeMouseDown(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const direction = directionMap[this.id];
+        if (direction && window.__TAURI__?.window) {
+            window.__TAURI__.window.getCurrentWindow().startResizeDragging(direction);
+        }
+    }
+
+    document.querySelectorAll('.resize-zone').forEach(function(el) {
+        el.addEventListener('mousedown', handleResizeMouseDown);
+    });
+})();
+
+    </script>
+
+    <!-- React app -->
     <script type="module" src="/src/main.jsx"></script>
+
   </body>
 </html>
+
