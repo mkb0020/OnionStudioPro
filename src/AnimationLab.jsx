@@ -997,6 +997,9 @@ function SpriteProps({ layer, onUpdate }) {
       <SliderRow label="Frame Height" id="frameH" cfg={c} onUpdate={up} min={8}   max={600}  />
       <SliderRow label="X Position"   id="x"      cfg={c} onUpdate={up} min={0}   max={3840} />
       <SliderRow label="Y Position"   id="y"      cfg={c} onUpdate={up} min={0}   max={2160} />
+      <div style={{ fontSize: 9, color: "var(--text3)", margin: "-2px 0 6px" }}>
+        ← ↑ ↓ → arrow keys nudge the layer 1px
+      </div>
       <SliderRow label="Scale"        id="scale"  cfg={c} onUpdate={up} min={0.1} max={10}   step={0.1} />
     </div>
   );
@@ -1393,6 +1396,63 @@ export default function AnimationLab() {
     () => {
     if (!layers.find((l) => l.id === selected)) setSelected(layers[0]?.id || null);
   }, [layers, selected]);
+
+  const anyModalOpen =
+    showOpening || showAddModal || showFullscreen || showSpriteBuilder || showCueEditor;
+
+  useEffect(
+    /**
+     * Nudge tool: moves the selected sprite layer by 1px per arrow key press.
+     * Ignored while typing in a text/number field, while a modal is open, or if the layer is locked.
+     */
+    () => {
+    if (anyModalOpen) return;
+    const NUDGE = {
+      ArrowUp:    ["y", -1],
+      ArrowDown:  ["y",  1],
+      ArrowLeft:  ["x", -1],
+      ArrowRight: ["x",  1],
+    };
+    const onKey = (e) => {
+      const nudge = NUDGE[e.key];
+      if (!nudge || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+
+      // Leave arrow keys alone inside editable fields (caret movement, select options, etc.)
+      const t = e.target;
+      const tag = t?.tagName;
+      const inputType = (t?.type || "").toLowerCase();
+      const isEditable =
+        t?.isContentEditable ||
+        tag === "TEXTAREA" ||
+        tag === "SELECT" ||
+        (tag === "INPUT" && !["range", "checkbox", "radio", "button", "file"].includes(inputType));
+      if (isEditable) return;
+
+      const layer = layersRef.current.find((l) => l.id === selected);
+      if (!layer || layer.type !== "sprite" || layer.locked) return;
+
+      // Stop a focused slider from also reacting to the same key press
+      e.preventDefault();
+
+      const [axis, delta] = nudge;
+      const max = axis === "x" ? 3840 : 2160; // matches the X/Y Position slider ranges
+      setLayers((prev) =>
+        prev.map((l) => {
+          if (l.id !== layer.id) return l;
+          const cur = l.config?.[axis] ?? 0;
+          const next = Math.max(0, Math.min(max, cur + delta));
+          return next === cur ? l : { ...l, config: { ...l.config, [axis]: next } };
+        })
+      );
+    };
+    window.addEventListener("keydown", onKey);
+    return (
+      /**
+       * Removes the nudge keydown listener.
+       */
+      () => window.removeEventListener("keydown", onKey)
+    );
+  }, [selected, anyModalOpen]);
 
   useEffect(
     /**
